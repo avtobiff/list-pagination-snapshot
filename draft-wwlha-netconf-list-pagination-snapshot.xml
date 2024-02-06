@@ -1,0 +1,508 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE rfc SYSTEM "rfc2629.dtd">
+<?rfc toc="yes"?>
+<?rfc symrefs="yes"?>
+<?rfc sortrefs="yes" ?>
+<?rfc compact="yes"?>
+<?rfc subcompact="no"?>
+<?rfc linkmailto="no" ?>
+<?rfc editing="no" ?>
+<?rfc comments="yes" ?>
+<?rfc inline="yes"?>
+<?rfc rfcedstyle="yes"?>
+<?rfc-ext allow-markup-in-artwork="yes" ?>
+<?rfc-ext include-index="no" ?>
+<!--<?rfc strict="no"?> -->
+
+<rfc xmlns:xi="http://www.w3.org/2001/XInclude"
+     docName="draft-wwhla-netconf-list-pagination-snapshot-latest"
+     category="std"
+     consensus="true"
+     ipr="trust200902">
+
+  <front>
+    <title abbrev="List Pagination Snapshots">
+        List Pagination Snapshots for YANG-driven Protocols
+    </title>
+
+    <author fullname="Kent Watsen" initials="K." surname="Watsen">
+      <organization>Watsen Networks</organization>
+      <address>
+        <email>kent+ietf@watsen.net</email>
+      </address>
+    </author>
+    <author fullname="Qin Wu" initials="Q." surname="Wu">
+      <organization>Huawei Technologies</organization>
+      <address>
+        <!--
+        <postal>
+          <street>101 Software Avenue, Yuhua District</street>
+          <city>Nanjing</city>
+          <region>Jiangsu</region>
+          <code>210012</code>
+          <country>China</country>
+        </postal>
+        -->
+        <email>bill.wu@huawei.com</email>
+      </address>
+    </author>
+    <author fullname="Olof Hagsand" initials="O." surname="Hagsand">
+      <organization>Netgate</organization>
+      <address>
+        <email>olof@hagsand.se</email>
+      </address>
+    </author>
+    <author fullname="Hongwei Li" initials="H." surname="Li">
+      <organization>Hewlett Packard Enterprise</organization>
+      <address>
+        <email>flycoolman@gmail.com</email>
+      </address>
+    </author>
+    <author fullname="Per Andersson" initials="P." surname="Andersson">
+      <organization>Cisco Systems</organization>
+      <address>
+        <email>perander@cisco.com</email>
+      </address>
+    </author>
+
+    <date/>
+    <area>OPS Area</area>
+    <workgroup>NETCONF Working Group</workgroup>
+
+    <abstract>
+      <t>List pagination for YANG-driven protocols are defined in
+        <xref target="I-D.ietf-netconf-list-pagination"/>. Operational data
+        can have very large data sets. These data sets can furthermore have
+        big churn, a lot of additions or deletions to the data set. In order
+        to support a stable pagination of such data sets, snapshots can be
+        used.</t>
+      <t>This document defines snapshot support for pagination of
+        "config false" nodes of type "list" and "leaf-list". The snapshot
+        support for individual nodes is signaled via the
+        "ietf-system-capabilities" module.</t>
+    </abstract>
+  </front>
+  <middle>
+    <section anchor="intro" title="Introduction">
+      <t>The following open questions have been identified for
+        list-pagination with snapshots.</t>
+
+      <t>The requirements that are necessory to resolve for a complete
+        solution:</t>
+
+      <ul>
+        <li>What should be in the snapshot? The discussions have touched
+          on include entire list content, take a snapshot of list keys
+          etc.</li>
+        <li>How should a client return to a taken snapshot? I.e. one RESTCONF
+          request starts paginating and allocates a snapshot, how does the
+          client return to that snapshot for the next page? The snapshot would
+          need some id and a method to fetch it later. For instance a new
+          query parameter to identify a snapshot, and a snapshot metadata
+          id?</li>
+        <li>What is the lifecycle of a snapshot for pagination?</li>
+        <li>Should the client be able to signal that the snapshot should be
+          deallocated?</li>
+        <li>Should it the snapshot have some timeout after which it is
+          deallocated?</li>
+        <li>What happens when a server can't take a snapshot due to resource
+          constraints?</li>
+        <li>Should snapshots be implicitly deallocated when the pagination
+          reaches the last page?</li>
+        <li>Security considerations for protecting against DoS when a lot of
+          (possibly huge) snapshots can be taken.</li>
+      </ul>
+
+      <section title="Terminology">
+        <t>The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL
+          NOT", "SHOULD", "SHOULD NOT", "RECOMMENDED", "NOT RECOMMENDED",
+          "MAY", and "OPTIONAL" in this document are to be interpreted as
+          described in BCP 14 <xref target="RFC2119"/> <xref target="RFC8174"/>
+          when, and only when, they appear in all capitals, as shown here.</t>
+        <t>The following terms are defined in <xref target="RFC7950"/>
+          and are not redefined here:
+            client,
+            data model,
+            data tree,
+            feature,
+            extension,
+            module,
+            leaf,
+            leaf-list,
+            and server.
+        </t>
+        <!--
+        <t>The following terms are defined in this document as follows:</t>
+        -->
+      </section>
+
+      <section title="Conventions">
+        <t>Various examples used in this document use a placeholder
+          value for binary data that has been base64 encoded (e.g.,
+          "BASE64VALUE=").  This placeholder value is used as real
+          base64 encoded structures are often many lines long and
+          hence distracting to the example being presented.</t>
+      </section>
+
+      <section title="Adherence to the NMDA">
+        <t>This document is compliant with the Network Management Datastore
+          Architecture (NMDA) <xref target="RFC8342"/>.  The
+          "ietf-list-pagination-snapshot" module only defines a YANG
+          identity, grouping, and augments a couple leafs into a "config
+          false" node defined by the "ietf-system-capabilities" module.</t>
+      </section>
+
+    </section>
+
+    <section title="Solution Overview">
+      <t>The solution presented in this document extends the pagination
+        functionality in <xref target="I-D.ietf-netconf-list-pagination"/>.
+        The snapshot functionality defined by the document conforms to
+        "config false" "list" and "leaf-list" nodes.</t>
+      <t>The "snapshot" query parameter (see <xref target="snapshot-param"/>)
+        enables clients to ask create a snapshot. The support for snapshots
+        is signaled via <xref target="RFC9196"/> (see
+        <xref target="snapshot-support"/>).</t>
+    </section>
+
+    <section title='The "snapshot" Query Parameter' anchor="snapshot-param"
+             toc="exclude">
+      <dl newline="true">
+        <dt>Description</dt>
+        <dd>The "snapshot" query parameter indicates that the client
+          requests the server to take a snapshot of a "config false" target
+          before starting the pagination.</dd>
+
+        <dt>Default Value</dt>
+        <dd>If this query parameter is unspecified, it defaults to false.</dd>
+
+        <dt>Allowed Values</dt>
+        <dd>The allowed values are true or false. If snapshots are not
+          supported the "snapshot-not-supported" SHOULD be produced in the
+          error-app-tag in the error output.</dd>
+
+        <dt>Conformance</dt>
+        <dd>The "snapshot" query parameter MAY be supported for
+          "config false" lists and leaf-lists.</dd>
+      </dl>
+
+      <section title="NETCONF" anchor="snapshot-param-netconf">
+        <t>For the NETCONF protocol, the "snapshot" query parameter is added
+        to the protocol by augmenting "lpgsnap:snapshot-param-grouping" to
+        the get, get-config, and get-data RPCs.</t>
+      </section>
+
+      <section title="RESTCONF" anchor="snapshot-param-restconf">
+        <t>The RESTCONF protocol specific functionality and conformance is
+          defined in this section.</t>
+        <t>If the target node does not support snapshots, then a "501 Not
+          Implemented" status-line MUST be returned with the error-type value
+          "application" and error-tag value "invalid-value", and SHOULD
+          also include the "snapshot-not-supported" identity as error-app-tag
+          value.</t>
+        <t>
+          <figure>
+              <artwork><![CDATA[
++----------+---------+--------------------------------------------+
+| Name     | Methods | Description                                |
++----------+---------+--------------------------------------------+
+| snapshot | GET,    | Indicates that the server should take a    |
+|          | HEAD    | snapshot before paginating the result set. |
++----------+---------+--------------------------------------------+
+]]></artwork>
+          </figure>
+        </t>
+        <t>The "snapshot" query parameter is allowed for GET and HEAD methods
+          on "list" and "leaf-list" data resources. A "400 Bad Request"
+          status-line MUST be returned if used with any other method or
+          resource type. The error-tag value "operation-not-supprted" is used
+          in this case.</t>
+      </section>
+    </section>
+
+    <section title="Snapshot support" anchor="snapshot-support">
+      <t>A server MAY support snapshots when paginating a "config false"
+        list or leaf-list. In order to enable servers to identify which
+        nodes may be used to take snapshots when paginating the
+        "ietf-list-pagination-snapshot" module (see <xref
+        target="yang-module"/>) augments an empty leaf node called "snapshot"
+        into the "per-node-capabilities" node defined in the
+        "ietf-system-capabilities" module (see
+        <xref target="RFC9196"/>).</t>
+      <t>Note that it is possible for a client to request the server to
+        take a snapshot when paginating with the "snapshot" query parameter
+        (see <xref target="snapshot-param"/>.</t>
+    </section>
+
+
+    <section title='The "ietf-list-pagination-snapshot" Module'
+             anchor="yang-module">
+      <t>The "ietf-list-pagination-snapshot" module is used by servers to
+        indicate that they support pagination on YANG "list" and "leaf-list"
+        nodes, and to provide an ability to indicate which "config false" list
+        and/or "leaf-list" nodes are constrained and, if so, which nodes may be
+        used in "where" and "sort-by" expressions.</t>
+
+      <section title="Data Model Overview">
+        <t>The following tree diagram <xref target="RFC8340"/> illustrates
+          the "ietf-list-pagination-snapshot" module:</t>
+        <t>
+          <figure>
+           <artwork><![CDATA[
+INSERT_TEXT_FROM_FILE(includes/tree-ietf-list-pagination-snapshot.txt)
+]]></artwork>
+          </figure>
+        </t>
+        <t>Comments:</t>
+        <t>As shown, this module augments an optional leaves into
+          the "node-selector" node of the "ietf-system-capabilities"
+          module.</t>
+      </section>
+      <section title="YANG Module">
+        <t>This YANG module has normative references to <xref target="RFC7952"/>
+            and <xref target="RFC9196"/>.</t>
+        <figure>
+          <preamble>&lt;CODE BEGINS&gt; file "ietf-list-pagination-snapshot@YYYY-MM-DD.yang"</preamble>
+          <artwork><![CDATA[
+INSERT_TEXT_FROM_FILE(ietf-list-pagination-snapshot@YYYY-MM-DD.yang)
+]]></artwork>
+          <postamble>&lt;CODE ENDS&gt;</postamble>
+        </figure>
+      </section>
+    </section>
+
+    <section title="IANA Considerations">
+
+      <section title='The "IETF XML" Registry'>
+        <t>This document registers one URI in the "ns" subregistry of
+            the IETF XML Registry <xref target="RFC3688"/> maintained at
+            <eref target="https://www.iana.org/assignments/xml-registry/xml-registry.xhtml#ns"/>.
+            Following the format in <xref target="RFC3688"/>, the following
+            registration is requested:</t>
+        <t>
+          <figure align="center">
+            <artwork>
+URI: urn:ietf:params:xml:ns:yang:ietf-list-pagination-snapshot
+Registrant Contact: The IESG.
+XML: N/A, the requested URI is an XML namespace.
+          </artwork>
+          </figure>
+        </t>
+      </section>
+
+      <section title='The "YANG Module Names" Registry'>
+        <t>This document registers one YANG module in the YANG
+          Module Names registry <xref target="RFC6020"/> maintained at
+          <eref target="https://www.iana.org/assignments/yang-parameters/yang-parameters.xhtml"/>.
+          Following the format defined in <xref target="RFC6020"/>,
+          the below registration is requested:</t>
+        <t>
+          <figure align="center">
+            <artwork>
+name: ietf-list-pagination-snapshot
+namespace: urn:ietf:params:xml:ns:yang:ietf-list-pagination-snapshot
+prefix: lpg
+RFC: XXXX
+          </artwork>
+          </figure>
+        </t>
+      </section>
+      <section title='The "RESTCONF Capability URNs" Registry'>
+        <t>This document registers one capability in the RESTCONF
+          Capability URNs <xref target="RFC8040"/> maintained at
+          <eref target="https://www.iana.org/assignments/restconf-capability-urns/restconf-capability-urns.xhtml"/>.
+          Following the instructions defined in
+          <relref section="11.4" target="RFC8040" relative="#FIXME"/>,
+          the below registrations are requested:</t>
+
+        <t>All the registrations are to use this document (RFC XXXX)
+          for the "Reference" value.</t>
+        <t>
+          <figure>
+            <artwork><![CDATA[
+Index                Capability Identifier
+---------------------------------------------------------------------
+:snapshot            urn:ietf:params:restconf:capability:snapshot:1.0
+]]></artwork>
+          </figure>
+        </t>
+      </section>
+    </section>
+
+    <section anchor="security" title="Security Considerations">
+      <section title='Regarding the "ietf-list-pagination-snapshot" YANG Module'>
+          <t>
+            The YANG module specified in this document defines a schema for data
+            that is designed to be accessed via network management protocols
+            such as NETCONF [RFC6241] or RESTCONF [RFC8040]. The lowest NETCONF
+            layer is the secure transport layer, and the mandatory-to-implement
+            secure transport is Secure Shell (SSH) [RFC6242]. The lowest
+            RESTCONF layer is HTTPS, and the mandatory-to-implement secure
+            transport is TLS [RFC 8446].</t>
+
+        <t>The Network Configuration Access Control Model (NACM) [RFC8341]
+            provides the means to restrict access for particular NETCONF or
+            RESTCONF users to a preconfigured subset of all available NETCONF or
+            RESTCONF protocol operations and content.</t>
+
+        <t>-- if you have any writable data nodes (those are all the -- "config
+            true" nodes, and remember, that is the default) -- describe their
+            specific sensitivity or vulnerability.</t>
+
+        <t>There are a number of data nodes defined in this YANG module that
+            are writable/creatable/deletable (i.e., config true, which is the
+            default). These data nodes may be considered sensitive or vulnerable
+            in some network environments. Write operations (e.g., edit-config)
+            to these data nodes without proper protection can have a negative
+            effect on network operations. These are the subtrees and data nodes
+            and their sensitivity/vulnerability:</t>
+
+        <t>:list subtrees and data nodes and state why they are sensitive:</t>
+
+        <t>-- for all YANG modules you must evaluate whether any readable
+            data -- nodes (those are all the "config false" nodes, but also
+            all other -- nodes, because they can also be read via operations
+            like get or -- get-config) are sensitive or vulnerable (for
+            instance, if they -- might reveal customer information or
+            violate personal privacy -- laws such as those of the European
+            Union if exposed to -- unauthorized parties)</t>
+
+        <t>Some of the readable data nodes in this YANG module may be
+            considered sensitive or vulnerable in some network environments. It
+            is thus important to control read access (e.g., via get, get-config,
+            or notification) to these data nodes. These are the subtrees and
+            data nodes and their sensitivity/vulnerability:</t>
+
+        <t>:list subtrees and data nodes and state why they are sensitive:</t>
+
+        <t>-- if your YANG module has defined any rpc operations --
+            describe their specific sensitivity or vulnerability.</t>
+
+        <t>Some of the RPC operations in this YANG module may be considered
+            sensitive or vulnerable in some network environments. It is thus
+            important to control access to these operations. These are the
+            operations and their sensitivity/vulnerability:</t>
+
+        <t>:list RPC operations and state why they are sensitive:</t>
+
+        <t>Note: <xref target="RFC8446"/>, <xref target="RFC6241"/>,
+            <xref target="RFC6242"/>, <xref target="RFC8341"/>, and
+            <xref target="RFC8040"/> must be "normative references".</t>
+      </section>
+    </section>
+  </middle>
+  <back>
+    <references title="Normative References">
+      <?rfc include="reference.RFC.2119.xml"?> <!-- MUSTs, etc. -->
+      <?rfc include="reference.RFC.3688.xml"?> <!-- IETF XML Registry -->
+      <?rfc include="reference.RFC.5646.xml"?> <!-- Language sub-tags -->
+      <?rfc include="reference.RFC.6241.xml"?> <!-- NETCONF -->
+      <?rfc include="reference.RFC.6242.xml"?> <!-- NETCONF over SSH -->
+      <?rfc include="reference.RFC.7950.xml"?> <!-- YANG (curr) -->
+      <?rfc include="reference.RFC.7952.xml"?> <!-- YANG Metadata -->
+      <?rfc include="reference.RFC.8040.xml"?> <!-- RESTCONF -->
+      <?rfc include="reference.RFC.8174.xml"?> <!-- rfc2119 update -->
+      <?rfc include="reference.RFC.8341.xml"?> <!-- NACM -->
+      <?rfc include="reference.RFC.8446.xml"?> <!-- TLS 1.3 -->
+      <?rfc include="reference.RFC.8526.xml"?> <!-- NETCONF NMDA extensions -->
+      <?rfc include="reference.RFC.9196.xml"?> <!-- ietf-system-capabilities -->
+      <xi:include href="https://datatracker.ietf.org/doc/bibxml3/reference.I-D.ietf-netconf-list-pagination.xml"/>
+    </references>
+    <references title="Informative References">
+      <?rfc include="reference.RFC.6020.xml"?> <!-- YANG (orig) -->
+      <?rfc include="reference.RFC.6365.xml"?> <!-- Internationalization -->
+      <?rfc include="reference.RFC.8340.xml"?> <!-- YANG Tree Diagrams -->
+      <?rfc include="reference.RFC.8342.xml"?> <!-- NMDA -->
+      <?rfc include="reference.RFC.8525.xml"?> <!-- YANG Library -->
+      <xi:include href="https://xml2rfc.ietf.org/public/rfc/bibxml3/reference.I-D.ietf-netconf-list-pagination-nc.xml"/>
+      <xi:include href="https://xml2rfc.ietf.org/public/rfc/bibxml3/reference.I-D.ietf-netconf-list-pagination-rc.xml"/>
+      <xi:include href="https://xml2rfc.ietf.org/public/rfc/bibxml3/reference.I-D.ietf-netconf-restconf-collection.xml"/>
+    </references>
+
+
+
+    <section title="Vector Tests">
+
+      <t>This normative appendix section illustrates every notable
+        edge condition conceived during this document's production.</t>
+      <t>Test inputs and outputs are provided in a manner that is
+        both generic and concise.</t>
+      <t>Management protocol specific documents need only reproduce
+        as many of these tests as necessary to convey pecularities
+        presented by the protocol.</t>
+      <t>Implementations are RECOMMENDED to implement the tests
+        presented in this document, in addition to any tests that
+        may be presented in protocol specific documents.</t>
+      <t>The vector tests assume the "example-social" YANG module and
+        example data set defined
+        <xref target="I-D.ietf-netconf-list-pagination"/>.</t>
+
+      <section title="Example Data Set">
+        <t>The examples assume the server's operational state
+          as follows.</t>
+        <t>The following data enables snapshot support for the audit-log list
+          node.</t>
+        <t>
+          <figure>
+            <artwork><![CDATA[
+INSERT_TEXT_FROM_FILE(includes/ex-system-capabilities.xml)
+]]></artwork>
+          </figure>
+        </t>
+      </section>
+
+
+      <section title="Example Queries">
+
+        <t>The following sections present example queries for the the snapshot
+          query parameter.</t>
+        <t>All the vector tests are presented in a protocol-independent
+          manner.  JSON is used only for its conciseness.</t>
+
+        <section title='The "snapshot" Parameter'
+          anchor="snapshot-param-example">
+          <t>The "snapshot" parameter may be used on "config false" target
+            nodes.</t>
+
+          <aside><t>If this parameter is omitted, the default value is false.
+            </t></aside>
+
+            <t>REQUEST</t>
+            <t>
+              <figure>
+                <artwork><![CDATA[
+Target: /example-social:audit-logs/audit-log
+  Pagination Parameters:
+    Where:     -
+    Sort-by:   -
+    Direction: -
+    Offset:    -
+    Limit:     -
+    Snapshot:  true
+]]></artwork>
+              </figure>
+            </t>
+            <t>RESPONSE</t>
+            <t>
+              <figure>
+                <artwork><![CDATA[
+INSERT_TEXT_FROM_FILE(includes/ex-snapshot-list.json)
+]]></artwork>
+              </figure>
+            </t>
+        </section>
+      </section> <!-- Example Queries -->
+    </section> <!-- Vector Tests -->
+
+    <section title="Acknowledgements" numbered="no">
+      <t>The authors would like to thank the following for lively discussions
+        on list (ordered by first name):
+        Andy Bierman,
+        Tom Petch,
+        and
+        Quifang&nbsp;Ma.
+      </t>
+    </section>
+
+  </back>
+</rfc>

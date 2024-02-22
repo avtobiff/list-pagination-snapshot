@@ -366,27 +366,20 @@ Index                Capability Identifier
       <?rfc include="reference.RFC.6241.xml"?> <!-- NETCONF -->
       <?rfc include="reference.RFC.6242.xml"?> <!-- NETCONF over SSH -->
       <?rfc include="reference.RFC.7950.xml"?> <!-- YANG (curr) -->
-      <?rfc include="reference.RFC.7952.xml"?> <!-- YANG Metadata -->
+      <?rfc include="reference.RFC.7952.xml"?> <!-- YANG Metadat -->
       <?rfc include="reference.RFC.8040.xml"?> <!-- RESTCONF -->
       <?rfc include="reference.RFC.8174.xml"?> <!-- rfc2119 update -->
-      <?rfc include="reference.RFC.8341.xml"?> <!-- NACM -->
+      <?rfc include="reference.RFC.8340.xml"?> <!-- YANG Tree Diagrams -->
+      <?rfc include="reference.RFC.8341.xml"?> <!-- Network Configuration Access Control Model --->
       <?rfc include="reference.RFC.8446.xml"?> <!-- TLS 1.3 -->
-      <?rfc include="reference.RFC.8526.xml"?> <!-- NETCONF NMDA extensions -->
-      <?rfc include="reference.RFC.9196.xml"?> <!-- ietf-system-capabilities -->
-      <xi:include href="https://datatracker.ietf.org/doc/bibxml3/reference.I-D.ietf-netconf-list-pagination.xml"/>
+      <?rfc include="reference.RFC.9196.xml"?> <!-- YANG Modules Describing Capabilities for Systems and Datastore Update Notifications -->
     </references>
     <references title="Informative References">
       <?rfc include="reference.RFC.6020.xml"?> <!-- YANG (orig) -->
       <?rfc include="reference.RFC.6365.xml"?> <!-- Internationalization -->
-      <?rfc include="reference.RFC.8340.xml"?> <!-- YANG Tree Diagrams -->
       <?rfc include="reference.RFC.8342.xml"?> <!-- NMDA -->
       <?rfc include="reference.RFC.8525.xml"?> <!-- YANG Library -->
-      <xi:include href="https://xml2rfc.ietf.org/public/rfc/bibxml3/reference.I-D.ietf-netconf-list-pagination-nc.xml"/>
-      <xi:include href="https://xml2rfc.ietf.org/public/rfc/bibxml3/reference.I-D.ietf-netconf-list-pagination-rc.xml"/>
-      <xi:include href="https://xml2rfc.ietf.org/public/rfc/bibxml3/reference.I-D.ietf-netconf-restconf-collection.xml"/>
     </references>
-
-
 
     <section title="Vector Tests">
 

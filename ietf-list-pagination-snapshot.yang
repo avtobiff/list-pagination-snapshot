@@ -39,11 +39,9 @@ module ietf-list-pagination-snapshot {
      WG List:  NETCONF WG list <mailto:netconf@ietf.org>";
 
   description
-    "This module is used by servers to 1) indicate they support
-     pagination on 'list' and 'leaf-list' resources, 2) define a
-     grouping for each list-pagination parameter, and 3) indicate
-     which 'config false' lists have constrained 'where' and
-     'sort-by' parameters and how they may be used, if at all.
+    "This module is used by servers to indicate they support snapshot
+     pagination on 'config false' nodes of type 'list' and 'leaf-list'.
+     It also defines a grouping for the snapshot parameter.
 
      Copyright (c) 2024 IETF Trust and the persons identified
      as authors of the code. All rights reserved.

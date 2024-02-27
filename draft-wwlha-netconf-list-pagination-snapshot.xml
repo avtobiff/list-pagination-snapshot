@@ -25,6 +25,12 @@
         List Pagination Snapshots for YANG-driven Protocols
     </title>
 
+    <author fullname="Per Andersson" initials="P." surname="Andersson">
+      <organization>Cisco Systems</organization>
+      <address>
+        <email>perander@cisco.com</email>
+      </address>
+    </author>
     <author fullname="Kent Watsen" initials="K." surname="Watsen">
       <organization>Watsen Networks</organization>
       <address>
@@ -56,12 +62,6 @@
       <organization>Hewlett Packard Enterprise</organization>
       <address>
         <email>flycoolman@gmail.com</email>
-      </address>
-    </author>
-    <author fullname="Per Andersson" initials="P." surname="Andersson">
-      <organization>Cisco Systems</organization>
-      <address>
-        <email>perander@cisco.com</email>
       </address>
     </author>
 

@@ -4,6 +4,12 @@ module ietf-list-pagination-snapshot {
     "urn:ietf:params:xml:ns:yang:ietf-list-pagination-snapshot";
   prefix lpgsnap;
 
+  import ietf-datastores {
+    prefix ds;
+    reference
+      "RFC 8342: Network Management Datastore Architecture (NMDA)";
+  }
+
   import ietf-netconf {
     prefix nc;
     reference
@@ -124,9 +130,15 @@ module ietf-list-pagination-snapshot {
     uses snapshot-param-grouping;
   }
 
-  augment // FIXME: ensure datastore == <operational>
+  augment
     "/sysc:system-capabilities/sysc:datastore-capabilities"
     + "/sysc:per-node-capabilities" {
+
+    // Ensure the following node is only used for the
+    // <operational> datastore.
+    when "/sysc:system-capabilities/sysc:datastore-capabilities"
+         + "/sysc:datastore = 'ds:operational'";
+
     description
       "Defines some leafs that MAY be used by the server to
        describe constraints imposed of the 'where' filters and

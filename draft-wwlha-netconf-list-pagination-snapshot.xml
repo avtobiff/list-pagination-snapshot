@@ -255,8 +255,8 @@ INSERT_TEXT_FROM_FILE(includes/tree-ietf-list-pagination-snapshot.txt)
           </figure>
         </t>
         <t>Comments:</t>
-        <t>As shown, this module augments an optional leaves into
-          the "node-selector" node of the "ietf-system-capabilities"
+        <t>As shown, this module augments an optional leaf into the
+          "per-node-capabilities" list node of the "ietf-system-capabilities"
           module.</t>
       </section>
       <section title="YANG Module">
